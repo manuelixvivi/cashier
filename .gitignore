@@ -1,0 +1,19 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Database
+*.db

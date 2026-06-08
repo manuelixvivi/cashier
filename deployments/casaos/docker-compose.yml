@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  pos-ai-backend:
+    image: pos-ai-backend:latest
+    container_name: pos-ai-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=change-me-in-production
+      - JWT_SECRET_KEY=change-me-in-production
+      - MONGO_URI=mongodb://mongo:27017/pos_ai_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - AI_MODE=offline
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    networks:
+      - pos-network
+
+  mongo:
+    image: mongo:7
+    container_name: pos-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+    networks:
+      - pos-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: pos-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - pos-network
+
+  celery-worker:
+    image: pos-ai-backend:latest
+    container_name: pos-celery-worker
+    command: celery -A app.tasks.celery_worker worker --loglevel=info
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/pos_ai_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - mongo
+      - redis
+    restart: unless-stopped
+    networks:
+      - pos-network
+
+volumes:
+  mongo_data:
+
+networks:
+  pos-network:
+    driver: bridge
