@@ -1,4 +1,18 @@
 $kind: http-request
-url: ""
-method: GET
+name: New Request
+url: "{{base_url}}/api/v1/chatbot/chat"
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"message\": \"jual royco 1 dus\",\r
+
+    \  \"mode\": \"online\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
 order: 1780972038905

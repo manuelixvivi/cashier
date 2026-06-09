@@ -241,7 +241,6 @@ class GeminiClient:
                 except Exception:
                     pass
 
-            return {
-                "intent": "unknown",
-                "raw_response": response
-            }
+            raise Exception(
+                f"Gemini returned invalid JSON: {response}"
+            )

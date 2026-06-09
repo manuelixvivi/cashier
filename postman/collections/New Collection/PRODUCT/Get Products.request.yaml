@@ -1,4 +1,9 @@
 $kind: http-request
-url: ""
+name: Get Products
+url: "{{base_url}}/api/v1/products/"
 method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
 order: 1780971995599
