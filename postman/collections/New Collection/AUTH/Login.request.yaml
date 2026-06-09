@@ -1,0 +1,32 @@
+$kind: http-request
+name: Login
+url: "{{base_url}}/api/v1/auth/login"
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"username\": \"admin\",\r
+
+    \  \"password\": \"admin123\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "let json = pm.response.json();\r
+
+      \r
+
+      pm.environment.set(\r
+
+      \    \"token\",\r
+
+      \    json.data.access_token\r
+
+      );\r
+
+      \r
+
+      console.log(\"Token saved!\");"
+    language: text/javascript
+order: 1780971035143

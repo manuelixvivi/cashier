@@ -3,7 +3,9 @@ AI Router - Route between online and offline mode
 """
 
 import os
-from app.chatbot.online.gemma_client import GemmaClient
+from app.chatbot.online.gemini_client import GeminiClient
+from app.chatbot.online.groq_client import GroqClient
+from app.chatbot.online.openrouter_client import OpenRouterClient
 from app.chatbot.offline.regex_parser import RegexParser
 from app.chatbot.offline.entity_extractor import EntityExtractor
 from app.chatbot.offline.rule_engine import RuleEngine
@@ -14,12 +16,28 @@ class AIRouter:
     """Router for AI chatbot - online/offline mode"""
 
     def __init__(self):
-        self.mode = os.getenv('AI_MODE', 'offline')
-        self.gemma_client = GemmaClient()
+
+        self.mode = os.getenv(
+            'AI_MODE',
+            'hybrid'
+        )
+
+        self.providers = [
+
+            GeminiClient(),
+
+            GroqClient(),
+
+            OpenRouterClient()
+
+        ]
 
     def is_online_available(self):
-        """Check if online mode is available"""
-        return self.gemma_client.is_available()
+
+        return any(
+            provider.is_available()
+            for provider in self.providers
+        )
 
     def process(self, text, force_mode=None):
         """Process user input with appropriate mode"""
@@ -35,37 +53,93 @@ class AIRouter:
             return self._process_offline(text)
 
         elif mode == 'online':
-            if not self.is_online_available():
+
+            try:
+
+                return self._process_online(
+                    text
+                )
+
+            except Exception as e:
+
                 return {
-                    'success': False,
-                    'error': 'Online mode not available. API key not configured.',
-                    'fallback': self._process_offline(text)
+
+                    'success': True,
+
+                    'mode':
+                    'offline_fallback',
+
+                    'reason':
+                    str(e),
+
+                    'fallback':
+                    self._process_offline(text)
+
                 }
-            return self._process_online(text)
 
         else:  # offline
             return self._process_offline(text)
 
     def _process_online(self, text):
-        """Process using online AI (Gemma via Groq)"""
-        parsed = self.gemma_client.parse_pos_command(text)
+        """
+        Try providers sequentially:
+        Gemini
+        Groq
+        OpenRouter
+        """
 
-        # Apply rules to validate
-        intent = parsed.get('intent', 'unknown')
-        if intent == 'sale':
-            return RuleEngine.process_sale(parsed)
-        elif intent == 'check_stock':
-            return RuleEngine.process_check_stock(parsed)
-        elif intent == 'check_price':
-            return RuleEngine.process_check_price(parsed)
-        elif intent == 'add_unit':
-            return RuleEngine.process_add_unit(parsed)
+        last_error = None
 
-        return {
-            'success': True,
-            'mode': 'online',
-            'parsed': parsed
-        }
+        for provider in self.providers:
+
+            try:
+
+                if not provider.is_available():
+                    continue
+
+                parsed = provider.parse_pos_command(text)
+
+                intent = parsed.get(
+                    'intent',
+                    'unknown'
+                )
+
+                print(
+                    f"[AI] Using provider: {provider.name}"
+                )
+
+                if intent == 'sale':
+                    return RuleEngine.process_sale(parsed)
+
+                elif intent == 'check_stock':
+                    return RuleEngine.process_check_stock(parsed)
+
+                elif intent == 'check_price':
+                    return RuleEngine.process_check_price(parsed)
+
+                elif intent == 'add_unit':
+                    return RuleEngine.process_add_unit(parsed)
+
+                return {
+                    'success': True,
+                    'mode': 'online',
+                    'provider': provider.name,
+                    'parsed': parsed
+                }
+
+            except Exception as e:
+
+                print(
+                    f"[AI] {provider.name} failed: {e}"
+                )
+
+                last_error = str(e)
+
+                continue
+
+        raise Exception(
+            f"All providers failed. Last error: {last_error}"
+        )
 
     def _process_offline(self, text):
         """Process using offline engine (regex + rules)"""

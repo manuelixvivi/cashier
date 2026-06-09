@@ -7,7 +7,9 @@ import json
 import re
 import google.generativeai as genai
 
-class GemmaClient:
+class GeminiClient:
+
+    name = "gemini"
     def __init__(self, api_key=None, model=None):
 
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
@@ -73,8 +75,17 @@ class GemmaClient:
             return response.text
 
         except Exception as e:
+
+            error_text = str(e)
+
+            if "429" in error_text:
+
+                raise Exception(
+                    "Gemini quota exceeded"
+                )
+
             raise Exception(
-                f"Gemini API error: {str(e)}"
+                f"Gemini API error: {error_text}"
             )
 
     def parse_pos_command(self, text):
@@ -192,6 +203,10 @@ class GemmaClient:
             temperature=0.1,
             max_tokens=512
         )
+
+        print("\n===== GEMINI RAW RESPONSE =====")
+        print(response)
+        print("===== END RESPONSE =====\n")
 
         try:
 
