@@ -47,6 +47,10 @@ class RuleEngine:
             base_qty
         )
 
+        updated_product = ProductRepository.find_by_id(
+            str(product._id)
+        )
+
         return {
             'success': True,
             'intent': 'sale',
@@ -56,7 +60,7 @@ class RuleEngine:
             'unit': unit,
             'unit_price': total_price / qty if qty > 0 else 0,
             'total_price': total_price,
-            'stock_after': product.stock - base_qty
+            'stock_after': updated_product.stock
         }
 
     @classmethod
